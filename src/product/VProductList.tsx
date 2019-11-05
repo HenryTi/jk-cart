@@ -3,7 +3,6 @@ import { VPage, Page, Scroller } from 'tonva';
 import { CProduct, renderProduct } from './CProduct';
 import { List } from 'tonva';
 import { observer } from 'mobx-react';
-//import { cCartApp } from 'ui/CCartApp';
 
 export class VProductList extends VPage<CProduct> {
 

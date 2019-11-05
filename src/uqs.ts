@@ -49,6 +49,7 @@ export interface UqCustomer {
     InvoiceInfo: Tuid;
     CustomerContacts: Map;
     CustomerSetting: Map;
+    CustomerContractor: Map;
 }
 
 export interface UqCustomerDiscount {

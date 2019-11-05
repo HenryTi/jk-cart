@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Page } from 'tonva';
-import ReactMarkdown from 'react-markdown';
+import marked from 'marked';
 import logo from '../images/logo.png';
 
 const content = `<p>　　百灵威科技有限公司是一家致力于研发和生产化学及相关产品，集敏捷制造、全球营销和现代物流为一体的高科技企业。
@@ -26,7 +26,7 @@ export class About extends React.Component {
                 <div className="h3 flex-fill text-center">
                     <span className="text-primary mr-3">百灵威集团</span>
                 </div>
-                <ReactMarkdown className="mt-5" source={content} escapeHtml={false} />
+                <div className="mt-5" dangerouslySetInnerHTML={{ __html: marked(content) }} />
             </div>
         </Page>;
     }

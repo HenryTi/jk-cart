@@ -78,7 +78,7 @@ export class VCreateOrder extends VPage<COrder> {
                     </div>
                 }
             } else {
-                noOffsetUI = <div>此单无优惠</div>;
+                noOffsetUI = <div>谢谢惠顾</div>;
             }
             return <div className="mr-2">
                 <div className="text-success">{code.substr(0, 4)} {code.substr(4)}</div>

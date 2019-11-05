@@ -28,25 +28,26 @@ export class VContact extends VPage<CSelectContact> {
             name: { widget: 'text', label: '姓名', placeholder: '姓名', rules: nameValidation } as UiInputItem,
             organizationName: { widget: 'text', label: '单位名称', placeholder: '单位名称', rules: organizationNameValidation } as UiInputItem,
             mobile: { widget: 'text', label: '手机号', placeholder: '手机号', rules: mobileValidation } as UiInputItem, telephone: { widget: 'text', label: '电话', placeholder: '电话', rules: telephoneValidation } as UiInputItem,
-            email: { widget: 'email', label: 'Email', rules: emailValidation, placeholder: 'Email' } as UiInputItem, address: {
+            email: { widget: 'email', label: 'Email', rules: emailValidation, placeholder: 'Email' } as UiInputItem,
+            address: {
                 widget: 'id', label: '所在地区', placeholder: '所在地区',
                 pickId: async (context: Context, name: string, value: number) => await this.controller.pickAddress(context, name, value),
                 Templet: (address: BoxId) => {
                     return tv(address, (addressValue) => {
                         let { country, province, city, county } = addressValue;
                         /* 下面这种在使用tv之前的一堆判断应该是tv或者什么的有bug, 应该让Henry改改 */
-                        return <>
+                        return <div className="text-truncate">
                             {country && country.id && tv(country, v => <>{v.chineseName}</>)}
                             {province && province.id && tv(province, (v) => <>{v.chineseName}</>)}
                             {city && city.id && tv(city, (v) => <>{v.chineseName}</>)}
                             {county && county.id && tv(county, (v) => <>{v.chineseName}</>)}
-                        </>;
+                        </div>;
                     }, () => {
                         return <small className="text-muted">请选择地区</small>;
                     })
                 }
             } as UiIdItem,
-            addressString: { widget: 'text', label: '详细地址', placeholder: '详细地址', rules: addressDetailValidation } as UiInputItem,
+            addressString: { widget: 'text', label: '详细地址', placeholder: '详细地址', className: "text-truncate", rules: addressDetailValidation } as UiInputItem,
             isDefault: { widget: 'checkbox', label: '作为默认地址' },
             submit: { widget: 'button', label: '提交' },
         }

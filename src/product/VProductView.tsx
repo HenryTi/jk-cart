@@ -104,29 +104,70 @@ export class VProductPrice extends View<CProduct> {
     }
 
     @observable private prices: any;
-    private initPrices = async (productId: number, salesRegionId: number) => {
+    private initPrices = async (product: BoxId, salesRegionId: number, discount: number) => {
         if (this.prices === undefined)
-            this.prices = this.controller.getProductPrice(productId, salesRegionId);
+            this.prices = await this.controller.getProductPrice(product, salesRegionId, discount);
+    }
+
+    private renderPrice(item: any) {
+        let { pack, retail, vipPrice, promotionPrice } = item;
+        let right = null;
+        if (retail) {
+            let price: number = this.minPrice(vipPrice, promotionPrice);
+            let retailUI: any;
+            if (price) {
+                retailUI = <small className="text-muted"><del>¥{retail}</del></small>;
+            }
+            else {
+                price = retail;
+            }
+            right = <div className="row">
+                <div className="col-sm-6 pb-2 d-flex justify-content-end align-items-center">
+                    <small className="text-muted">{retailUI}</small>&nbsp; &nbsp;
+                    <span className="text-danger">¥ <span className="h5">{price}</span></span>
+                </div>
+                <div className="col-sm-6 pb-2 d-flex justify-content-end align-items-center">
+                    <Form schema={this.schema} uiSchema={this.uiSchema} formData={item} />
+                </div>
+            </div >
+        } else {
+            right = <small>请询价</small>
+        }
+        return right;
+        /*
+        let { pack, retail } = item;
+        return <div className="row">
+            <div className="col-sm-6 pb-2 d-flex justify-content-end align-items-center">
+                <span className="text-danger">¥ <span className="h5">{retail}</span></span>
+            </div>
+            <div className="col-sm-6 pb-2 d-flex justify-content-end align-items-center">
+                <Form schema={this.schema} uiSchema={this.uiSchema} formData={item} />
+            </div>
+        </div>
+        */
+    }
+
+    private minPrice(vipPrice: any, promotionPrice: any) {
+        if (vipPrice || promotionPrice)
+            return Math.min(typeof (vipPrice) === 'number' ? vipPrice : Infinity, typeof (promotionPrice) === 'number' ? promotionPrice : Infinity);
     }
 
     private product: BoxId;
     render(param: any): JSX.Element {
-        this.product = param;
-        let productId = param.id;
+        let { product, discount } = param;
+        this.product = product;
         let { currentSalesRegion } = this.controller.cApp;
-        this.controller.getProductPrice(productId, currentSalesRegion);
-        return <this.content productId={productId} SalesRegionId={currentSalesRegion} />;
+        return <this.content product={product} SalesRegionId={currentSalesRegion} discount={discount} />;
     }
 
     private content = observer((param?: any) => {
         let priceUI;
-        let { productId, SalesRegionId } = param;
+        let { product, SalesRegionId, discount } = param;
 
         let { renderDeliveryTime } = this.controller;
-        // let prices = productPriceContainer[productSalesRegion];
-        this.initPrices(productId, SalesRegionId);
+        this.initPrices(product, SalesRegionId, discount);
         if (this.prices && this.prices.length > 0) {
-            priceUI = this.prices.filter((e: any) => e.discountinued === 0 && e.expireDate > Date.now()).map((v: any, index: number) => {
+            priceUI = this.prices.map((v: any, index: number) => {
                 let { pack, retail } = v;
                 if (retail) {
                     return <div className="px-2" key={pack.id}>
@@ -136,14 +177,7 @@ export class VProductPrice extends View<CProduct> {
                                 <div>{renderDeliveryTime(pack)}</div>
                             </div>
                             <div className="col-6">
-                                <div className="row">
-                                    <div className="col-sm-6 pb-2 d-flex justify-content-end align-items-center">
-                                        <span className="text-danger">¥ <span className="h5">{retail}</span></span>
-                                    </div>
-                                    <div className="col-sm-6 pb-2 d-flex justify-content-end align-items-center">
-                                        <Form schema={this.schema} uiSchema={this.uiSchema} formData={v} />
-                                    </div>
-                                </div>
+                                {this.renderPrice(v)}
                             </div>
                         </div>
                     </div>;
@@ -152,6 +186,6 @@ export class VProductPrice extends View<CProduct> {
                 }
             });
         }
-        return priceUI || <div>none</div>;
+        return priceUI;
     })
 }

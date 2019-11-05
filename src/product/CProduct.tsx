@@ -1,12 +1,9 @@
 import * as React from 'react';
 import * as _ from 'lodash';
 import { observable } from 'mobx';
-import { Query, tv, BoxId, Map } from 'tonva';
-import { PageItems, Controller, nav, Page, Image } from 'tonva';
+import { Query, tv, BoxId, PageItems } from 'tonva';
 import classNames from 'classnames';
-import { CApp } from '../CApp';
 import { CUqBase } from '../CBase';
-//import { CCartApp } from '../CCartApp';
 import { VProduct } from './VProduct';
 import { VProductList } from './VProductList';
 import { LoaderProductChemicalWithPrices } from './itemLoader';
@@ -40,7 +37,6 @@ class PageProducts extends PageItems<any> {
  *
  */
 export class CProduct extends CUqBase {
-    //    cApp: CApp;
     pageProducts: PageProducts;
 
     @observable futureDeliveryTimeDescriptionContainer: { [cacheId: string]: string } = {};
@@ -52,7 +48,6 @@ export class CProduct extends CUqBase {
 
     searchByKey(key: string) {
         let { currentSalesRegion } = this.cApp;
-        //let searchProductQuery = cUqProduct.query("searchProduct");
         this.pageProducts = new PageProducts(this.uqs.product.SearchProduct);
         this.pageProducts.first({ keyWord: key, salesRegion: currentSalesRegion.id });
         this.openVPage(VProductList, key);
@@ -60,7 +55,6 @@ export class CProduct extends CUqBase {
 
     async searchByCategory(category: any) {
         let { currentSalesRegion } = this.cApp;
-        //let searchProductQuery = .query("searchProductByCategory");
         this.pageProducts = new PageProducts(this.uqs.product.SearchProductByCategory);
         let { productCategoryId, name } = category;
         this.pageProducts.first({ productCategory: productCategoryId, salesRegion: currentSalesRegion.id });
@@ -69,17 +63,55 @@ export class CProduct extends CUqBase {
 
     showProductDetail = async (product: BoxId) => {
 
-        let loader = new LoaderProductChemicalWithPrices(this.cApp);
-        let productData = await loader.load(product.id);
-        this.openVPage(VProduct, { productData, product });
+        // await product.assure();
+        let { id: productId, obj } = product;
+        if (productId) {
+            let discount = 0;
+            /*
+            let { currentUser } = this.cApp;
+            if (currentUser.hasCustomer) {
+                let discountSetting = await this.uqs.customerDiscount.GetDiscount.obj({ brand: obj.brand.id, customer: currentUser.currentCustomer });
+                discount = discountSetting && discountSetting.discount;
+            }
+            */
+            let loader = new LoaderProductChemicalWithPrices(this.cApp);
+            let productData = await loader.load(productId);
+            this.openVPage(VProduct, { productData, product, discount });
+        }
     }
 
-    renderProductPrice = (product: BoxId) => {
-        return this.renderView(VProductPrice, product);
+    renderProductPrice = (product: BoxId, discount: number) => {
+        return this.renderView(VProductPrice, { product: product, discount: discount });
     }
 
-    getProductPrice = async (productId: number, salesRegionId: number) => {
-        return await this.uqs.product.PriceX.table({ product: productId, salesRegion: salesRegionId });
+    getProductPrice = async (product: BoxId, salesRegionId: number, discount: number) => {
+        let { id: productId } = product;
+        let { currentSalesRegion, cart, currentLanguage, uqs } = this.cApp;
+
+        let prices = await uqs.product.PriceX.table({ product: product, salesRegion: salesRegionId });
+        let priceSet = prices.filter(e => e.discountinued === 0 && e.expireDate > Date.now()).sort((a, b) => a.retail - b.retail).map(element => {
+            let ret: any = {};
+            ret.pack = element.pack;
+            ret.retail = element.retail;
+            if (discount !== 0)
+                ret.vipPrice = Math.round(element.retail * (1 - discount));
+            ret.currency = currentSalesRegion.currency;
+            ret.quantity = cart.getQuantity(productId, element.pack.id)
+            return ret;
+        });
+        let promises: PromiseLike<any>[] = [];
+        priceSet.forEach(v => {
+            promises.push(uqs.promotion.GetPromotionPack.obj({ product: productId, pack: v.pack, salesRegion: currentSalesRegion, language: currentLanguage }));
+        })
+        let results = await Promise.all(promises);
+
+        for (let i = 0; i < priceSet.length; i++) {
+            let promotion = results[i];
+            let discount = promotion && promotion.discount;
+            if (discount)
+                priceSet[i].promotionPrice = Math.round((1 - discount) * priceSet[i].retail);
+        }
+        return priceSet;
     }
 
     renderDeliveryTime = (pack: BoxId) => {

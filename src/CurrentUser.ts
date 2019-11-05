@@ -21,9 +21,9 @@ export class WebUser {
     get defaultOrganizationName(): string {
         return this.organizationName ||
             (this.webUserSettings &&
-                ((
+                (
                     (this.webUserSettings.invoiceInfo && this.webUserSettings.invoiceInfo.obj['title'])
-                    || this.webUserSettings.shippingContact && this.webUserSettings.shippingContact.obj['organizationName'])
+                    || (this.webUserSettings.shippingContact && this.webUserSettings.shippingContact.obj['organizationName'])
                     || (this.webUserSettings.invoiceContact && this.webUserSettings.invoiceContact.obj['organizationName'])
                 )
             );
@@ -111,7 +111,7 @@ export class WebUser {
             }
             this.webUserSettings = await this.uqs.webuser.WebUserSetting.obj({ webUser: id }) || { webUser: id };
             let value = await this.uqs.webuser.WebUserCustomer.obj({ webUser: id });
-            if (value != undefined) {
+            if (value !== undefined) {
                 this.currentCustomer = new Customer(value.customer, this.uqs);
                 await this.currentCustomer.init();
             }
@@ -242,6 +242,7 @@ export class Customer {
     id: number;
 
     private customerSettings: any;
+    Contractor: any;
 
     constructor(customer: BoxId, uqs: UQs) {
         this.id = customer.id;
@@ -262,6 +263,9 @@ export class Customer {
 
     async init() {
         this.customerSettings = await this.uqs.customer.CustomerSetting.obj({ customer: this.id }) || { customer: this.id };
+        let customerContactorMap: any = await this.uqs.customer.CustomerContacts.obj({ customer: this.id });
+        if (customerContactorMap)
+            this.Contractor = customerContactorMap.contractor;
     }
 
     getSetting() {

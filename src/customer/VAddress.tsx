@@ -49,10 +49,10 @@ export class VAddress extends VPage<CAddress> {
         if (cities) {
             let len = cities.length;
             if (len === 1) {
-                await this.onCityClick(cities[0].id);
+                await this.onCityClick(cities[0].city.id);
                 return;
             }
-            if (len > 0) {
+            if (len > 1) {
                 this.backLevel++;
                 this.openPageElement(<Page header="选择所在城市">
                     <div className="row no-gutters">

@@ -1,7 +1,6 @@
 import { observable } from 'mobx';
 import { BoxId } from 'tonva';
 import { nav } from 'tonva';
-import { CApp } from '../CApp';
 import { CUqBase } from '../CBase';
 import { VCreateOrder } from './VCreateOrder';
 import { Order, OrderItem } from './Order';
@@ -11,7 +10,6 @@ import { VMyOrders } from './VMyOrders';
 import { VOrderDetail } from './VOrderDetail';
 import { CInvoiceInfo } from '../customer/CInvoiceInfo';
 import { groupByProduct } from '../tools/groupByProduct';
-import { CCoupon } from './CCoupon';
 import { CartItem2 } from '../cart/Cart';
 
 const FREIGHTFEEFIXED = 12;
@@ -29,12 +27,15 @@ export class COrder extends CUqBase {
     }
 
     private createOrderFromCart = async (cartItems: CartItem2[]) => {
-        let { currentUser, currentSalesRegion } = this.cApp;
+        let { currentUser, currentSalesRegion, currentCouponCode } = this.cApp;
         this.orderData.webUser = currentUser.id;
         this.orderData.salesRegion = currentSalesRegion.id;
         this.removeCoupon();
-        if (currentUser.currentCustomer !== undefined) {
-            this.orderData.customer = currentUser.currentCustomer.id;
+
+        let { currentCustomer } = currentUser;
+        if (currentCustomer !== undefined) {
+            let { Contractor } = currentCustomer;
+            this.orderData.customer = (Contractor && Contractor.id) || currentCustomer.id;
         }
 
         if (this.orderData.shippingContact === undefined) {
@@ -69,6 +70,13 @@ export class COrder extends CUqBase {
             this.orderData.freightFee = FREIGHTFEEFIXED;
             if (this.orderData.productAmount > FREIGHTFEEREMITTEDSTARTPOINT)
                 this.orderData.freightFeeRemitted = FREIGHTFEEFIXED * -1;
+        }
+        if (currentCouponCode) {
+            let coupon = await this.cApp.cCoupon.getCouponValidationResult(currentCouponCode);
+            if (coupon.result === 1)
+                this.applyCoupon(coupon);
+            else
+                this.cApp.currentCouponCode = undefined;
         }
     }
 
@@ -145,7 +153,7 @@ export class COrder extends CUqBase {
     }
 
     onCouponEdit = async () => {
-        let cCoupon = this.newC(CCoupon); // new CCoupon(this.cApp, undefined);
+        let { cCoupon } = this.cApp;
         let coupon = await cCoupon.call<any>(this.orderData.coupon);
         if (coupon) {
             await this.applyCoupon(coupon);
@@ -157,8 +165,8 @@ export class COrder extends CUqBase {
      */
     applyCoupon = async (coupon: any) => {
 
-        let { id, code, discount, preferential, validitydate, isValid } = coupon;
-        if (code !== undefined && isValid === 1 && new Date(validitydate).getTime() > Date.now()) {
+        let { result: validationResult, id, code, discount, preferential, validitydate, isValid } = coupon;
+        if (validationResult === 1 && code !== undefined && isValid === 1 && new Date(validitydate).getTime() > Date.now()) {
             this.orderData.coupon = id;
             this.couponData = coupon;
             if (discount) {

@@ -31,8 +31,10 @@ export class VProductDelivery extends View<CProduct> {
 
         let deliveryTimeUI;
         let { packId, productId, currentSalesRegion } = param;
-        this.initInventoryAllocation(productId, packId, currentSalesRegion);
-        this.initFutureDeliveryTimeDescription(productId, currentSalesRegion);
+        if (productId) {
+            this.initInventoryAllocation(productId, packId, currentSalesRegion);
+            this.initFutureDeliveryTimeDescription(productId, currentSalesRegion);
+        }
         if (this.inventoryAllocation === undefined || this.futureDeliveryTimeDescription === undefined)
             return null;
         if (this.inventoryAllocation && this.inventoryAllocation.length > 0) {
